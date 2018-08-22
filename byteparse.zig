@@ -18,6 +18,9 @@ pub fn digits10(comptime N: type, n: N) usize {
 const ParseError = error {
     /// The input had a byte that was not a digit
     InvalidCharacter,
+
+    /// The result cannot fit in the type specified
+    Overflow,
 };
 
 /// Returns a slice containing all the multiple powers of 10 that fit in the integer type `N`.
@@ -48,6 +51,10 @@ pub fn pow10array(comptime N: type) []N {
 pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
 
     comptime var table = comptime pow10array(N);
+
+    if (buf.len > table.len) {
+        return ParseError.Overflow;
+    }
 
     var bytes = buf;
     var result: N = 0;
@@ -105,6 +112,9 @@ test "atoi" {
     assert((atoi(u8, "257") catch 0) == 1);
 
     assert((atoi(u32, "9876543") catch 0) == 9876543);
+
+    // parse more digits than the type can handle
+    assert((atoi(u8, "1000") catch 0) == 0);
 }
 
 pub fn main() void {
