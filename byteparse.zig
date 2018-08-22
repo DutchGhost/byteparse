@@ -55,31 +55,17 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
     var idx = table.len - len;
 
     while (len >= 4) {
-        var r1 = bytes[0] -% 48;
-        if (r1 > 9) {
-            return ParseError.InvalidCharacter;
-        }
-        var d1 = r1 * table[idx];
+        comptime var UNROLL_COUNT = 0;
 
-        var r2 = bytes[1] -% 48;
-        if (r2 > 9) {
-            return ParseError.InvalidCharacter;
+        // unroll
+        inline while(UNROLL_COUNT < 4): ({UNROLL_COUNT += 1;}) {
+            var r1 = bytes[UNROLL_COUNT] -% 48;
+            if (r1 > 9) {
+                return ParseError.InvalidCharacter;
+            }
+            var d1: N = r1 * table[idx + UNROLL_COUNT]; 
+            result = result +% d1;
         }
-        var d2 = r2 * table[idx + 1];
-
-        var r3 = bytes[2] -% 48;
-        if (r3 > 9) {
-            return ParseError.InvalidCharacter;
-        }
-        var d3 = r3 * table[idx + 2];
-
-        var r4 = bytes[3] -% 48;
-        if (r4 > 9) {
-            return ParseError.InvalidCharacter;
-        }
-        var d4 = r4 * table[idx + 3];
-
-        result = result +% (d1 + d2 + d3 + d4);
 
         len -= 4;
         idx += 4;
