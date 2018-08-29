@@ -3,6 +3,24 @@ const std = @import("std");
 /// Returns how many digits a base-10 number has.
 /// Gets compiled down to many if's.
 pub fn digits10(comptime N: type, n: N) usize {
+    
+    const int_type = @typeName(N);
+
+    if (int_type[0] == 'i') {
+            //@compileError("cant do this for signed ints yet");
+
+        const bitcount = comptime atoi(u32, int_type[1..]) catch unreachable;
+
+        const unsigned_friend = @IntType(false, bitcount);
+
+        if (n < 0) {
+            return digits10(unsigned_friend, @intCast(unsigned_friend, n * -1));
+        }
+        else {
+            return digits10(unsigned_friend, @intCast(unsigned_friend, n));
+        }
+    }
+
     comptime var digits = 1;
     comptime var check = 10;
 
@@ -49,6 +67,21 @@ pub fn pow10array(comptime N: type) []N {
 /// if the byte-slice contains a digit that is not valid, an error is returned.
 /// An empty slice returns 0.
 pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
+
+    const int_type = @typeName(N);
+
+    if (int_type[0] == 'i') {
+        const bitcount = comptime atoi(u32, int_type[1..]) catch unreachable;
+
+        const unsigned_friend = @IntType(false, bitcount);
+
+        if (buf[0] == '-') {
+            return -@intCast(N, try atoi(unsigned_friend, buf[1..]));
+        }
+        else {
+            return @intCast(N, try atoi(unsigned_friend, buf));
+        }
+    }
 
     comptime var table = comptime pow10array(N);
 
@@ -115,11 +148,20 @@ test "atoi" {
 
     // parse more digits than the type can handle
     assert((atoi(u8, "1000") catch 0) == 0);
+
+    // parsing to signed ints
+    assert((atoi(i8, "-127") catch 0) == -127);
+
+    assert((atoi(i64, "-1273456") catch 0) == -1273456);
 }
 
 pub fn main() void {
     var n: u16 = 10;
     var s = digits10(u16, n);
+
+    var c = digits10(i8, -99);
+
+    std.debug.assert(c == 2);
 
     std.debug.assert(s == 2);
 
