@@ -84,7 +84,7 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
     }
 
     comptime var table = comptime pow10array(N);
-
+    
     if (buf.len > table.len) {
         return ParseError.Overflow;
     }
@@ -95,15 +95,15 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
     var idx = table.len - len;
 
     while (len >= 4) {
-        comptime var UNROLL_COUNT = 0;
-
+        comptime var UNROLL_IDX = 0;
+        comptime var UNROLL_MAX = 4;
         // unroll
-        inline while(UNROLL_COUNT < 4): ({UNROLL_COUNT += 1;}) {
-            var r1 = bytes[UNROLL_COUNT] -% 48;
+        inline while(UNROLL_IDX < UNROLL_MAX): ({UNROLL_IDX += 1;}) {
+            var r1 = bytes[UNROLL_IDX] -% 48;
             if (r1 > 9) {
                 return ParseError.InvalidCharacter;
             }
-            var d1: N = r1 * table[idx + UNROLL_COUNT]; 
+            var d1: N = r1 * table[idx + UNROLL_IDX]; 
             result = result +% d1;
         }
 
