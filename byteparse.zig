@@ -7,7 +7,7 @@ fn is_signed(comptime N: type) bool {
             return int.is_signed;
         },
         else => {
-            @compileError("is_signed only available on integer types. Found `" ++ @typeName(N) ++ "`.");
+            @compileError("Is_signed is only available on integer types. Found `" ++ @typeName(N) ++ "`.");
         }
     }
 }
@@ -27,7 +27,7 @@ fn bitcount(comptime N: type) u32 {
 /// Gets compiled down to many if's.
 pub fn digits10(comptime N: type, n: N) usize {
     
-    if (is_signed(N)) {
+    if (comptime is_signed(N)) {
 
         const nbits = comptime bitcount(N);
 
@@ -88,13 +88,11 @@ pub fn pow10array(comptime N: type) []N {
 /// An empty slice returns 0.
 pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
 
-    if (is_signed(N)) {
+    if (comptime is_signed(N)) {
         const nbits = comptime bitcount(N);
 
         const unsigned_friend = @IntType(false, nbits);
-        if (is_signed(unsigned_friend)) {
-            @compileError("NOPE");
-        }
+
         if (buf[0] == '-') {
             return -@intCast(N, try atoi(unsigned_friend, buf[1..]));
         }
@@ -196,7 +194,7 @@ pub fn main() void {
 
     var parsed = comptime atoi(u64, "257") catch 0;
 
-    var parsed2 = atoi(i8, "257") catch 0;
+    var parsed2 = atoi(i8, "-252") catch 0;
 
     std.debug.warn("{}\n", parsed);
 }
