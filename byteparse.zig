@@ -23,6 +23,14 @@ fn bitcount(comptime N: type) u32 {
     }
 }
 
+fn starts_with(buff: []const u8, needle: u8) bool {
+    return buff[0] == needle;
+}
+
+fn is_negative(comptime N: type, num: N) bool {
+    return n < 0;
+}
+
 /// Returns how many digits a base-10 number has.
 /// Gets compiled down to many if's.
 pub fn digits10(comptime N: type, n: N) usize {
@@ -33,7 +41,7 @@ pub fn digits10(comptime N: type, n: N) usize {
 
         const unsigned_friend = @IntType(false, nbits);
 
-        if (n < 0) {
+        if (is_negative(N, n)) {
             return digits10(unsigned_friend, @intCast(unsigned_friend, n * -1));
         }
         else {
@@ -93,7 +101,7 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
 
         const unsigned_friend = @IntType(false, nbits);
 
-        if (buf[0] == '-') {
+        if (starts_with(buf, '-')) {
             return -@intCast(N, try atoi(unsigned_friend, buf[1..]));
         }
         else {
@@ -112,18 +120,23 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
     var len = buf.len;
     var idx = table.len - len;
 
+
     while (len >= 4) {
         comptime var UNROLL_IDX = 0;
         comptime var UNROLL_MAX = 4;
+
+        var partial_results: [4]N = undefined;
         // unroll
         inline while(UNROLL_IDX < UNROLL_MAX): ({UNROLL_IDX += 1;}) {
+
             var r1 = bytes[UNROLL_IDX] -% 48;
             if (r1 > 9) {
                 return ParseError.InvalidCharacter;
             }
-            var d1: N = r1 * table[idx + UNROLL_IDX]; 
-            result = result +% d1;
+            partial_results[UNROLL_IDX] = r1 * table[idx + UNROLL_IDX]; 
         }
+
+        result = result +% partial_results[0] +% partial_results[1] +% partial_results[2] +% partial_results[3];
 
         len -= 4;
         idx += 4;
@@ -149,11 +162,6 @@ test "digits10" {
     @import("std").debug.assert(digits10(u1, 1) == 1);
     @import("std").debug.assert(digits10(u2, 3) == 1);
     @import("std").debug.assert(digits10(u8, 255) == 3);
-
-    _ = @typeOf(usize) == usize;
-
-    @import("std").debug.assert(bitcount(u8) == 8);
-
 }
 
 test "atoi" {
