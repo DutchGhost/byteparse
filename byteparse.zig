@@ -1,17 +1,37 @@
 const std = @import("std");
+const TypeId = @import("builtin").TypeId;
+
+fn is_signed(comptime N: type) bool {
+    switch (@typeInfo(N)) {
+        TypeId.Int => |int| {
+            return int.is_signed;
+        },
+        else => {
+            @compileError("is_signed only available on integer types. Found `" ++ @typeName(N) ++ "`.");
+        }
+    }
+}
+
+fn bitcount(comptime N: type) u32 {
+    switch (@typeInfo(N)) {
+        TypeId.Int => |int| {
+            return @intCast(u32, int.bits);
+        },
+        else => {
+            @compileError("Bitcount only available on integer types. Found `" ++ @typeName(N) ++ "`.");
+        }
+    }
+}
 
 /// Returns how many digits a base-10 number has.
 /// Gets compiled down to many if's.
 pub fn digits10(comptime N: type, n: N) usize {
     
-    const int_type = @typeName(N);
+    if (is_signed(N)) {
 
-    if (int_type[0] == 'i') {
-            //@compileError("cant do this for signed ints yet");
+        const nbits = comptime bitcount(N);
 
-        const bitcount = comptime atoi(u32, int_type[1..]) catch unreachable;
-
-        const unsigned_friend = @IntType(false, bitcount);
+        const unsigned_friend = @IntType(false, nbits);
 
         if (n < 0) {
             return digits10(unsigned_friend, @intCast(unsigned_friend, n * -1));
@@ -68,13 +88,13 @@ pub fn pow10array(comptime N: type) []N {
 /// An empty slice returns 0.
 pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
 
-    const int_type = @typeName(N);
+    if (is_signed(N)) {
+        const nbits = comptime bitcount(N);
 
-    if (int_type[0] == 'i') {
-        const bitcount = comptime atoi(u32, int_type[1..]) catch unreachable;
-
-        const unsigned_friend = @IntType(false, bitcount);
-
+        const unsigned_friend = @IntType(false, nbits);
+        if (is_signed(unsigned_friend)) {
+            @compileError("NOPE");
+        }
         if (buf[0] == '-') {
             return -@intCast(N, try atoi(unsigned_friend, buf[1..]));
         }
@@ -131,6 +151,11 @@ test "digits10" {
     @import("std").debug.assert(digits10(u1, 1) == 1);
     @import("std").debug.assert(digits10(u2, 3) == 1);
     @import("std").debug.assert(digits10(u8, 255) == 3);
+
+    _ = @typeOf(usize) == usize;
+
+    @import("std").debug.assert(bitcount(u8) == 8);
+
 }
 
 test "atoi" {
@@ -170,6 +195,8 @@ pub fn main() void {
     std.debug.assert(foo == 5);
 
     var parsed = comptime atoi(u64, "257") catch 0;
+
+    var parsed2 = atoi(i8, "257") catch 0;
 
     std.debug.warn("{}\n", parsed);
 }
