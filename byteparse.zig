@@ -125,18 +125,19 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
         comptime var UNROLL_IDX = 0;
         comptime var UNROLL_MAX = 4;
 
-        var partial_results: [4]N = undefined;
         // unroll
         inline while(UNROLL_IDX < UNROLL_MAX): ({UNROLL_IDX += 1;}) {
 
-            var r1 = bytes[UNROLL_IDX] -% 48;
+            const r1 = bytes[UNROLL_IDX] -% 48;
             if (r1 > 9) {
                 return ParseError.InvalidCharacter;
             }
-            partial_results[UNROLL_IDX] = r1 * table[idx + UNROLL_IDX]; 
+            //@NOTE: 30-10-2018
+            // It doesn't matter using a partial_result array,
+            // and then updating the result by 4 at a time. The assembly is the same with --release-fast,
+            // and this is just easier to read.
+            result = result +% r1 * table[idx + UNROLL_IDX];
         }
-
-        result = result +% partial_results[0] +% partial_results[1] +% partial_results[2] +% partial_results[3];
 
         len -= 4;
         idx += 4;
@@ -144,14 +145,13 @@ pub fn atoi(comptime N: type, buf: []const u8) ParseError!N {
         bytes = bytes[4..];
     }
 
-   
     for (bytes) |byte, offset| {
-        var r = byte -% 48;
+        const r = byte -% 48;
         if (r > 9) {
             return ParseError.InvalidCharacter;
         }
 
-        var d: N = r * table[idx + offset];
+        const d = r * table[idx + offset];
         result = result +% d;
     }
 
